@@ -1,0 +1,120 @@
+#!/usr/bin/env php
+<?php
+ini_set('display_errors', 0);
+
+$PIDFILE = getenv('PIDFILE');
+if (empty($PIDFILE)) {
+    $PIDFILE = 'regulars.pid';
+}
+
+$INTERVAL = getenv('INTERVAL');
+if (empty($INTERVAL)) {
+    $INTERVAL = 5;
+}
+
+// Daemonize
+$pid = pcntl_fork();
+if ($pid) {
+    exit();
+}
+
+// Handle signals so we can exit nicely
+declare(ticks = 1);
+
+class RegularDaemon
+{
+    protected $_pidFile;
+    protected $_paused = false;
+    protected $_shutdown = false;
+    protected $_interval = 5;
+
+    public function __construct($pidFile, $interval)
+    {
+        $this->updateTitle("Started");
+        $this->log("Starting daemon");
+
+        $this->_pidFile = $pidFile;
+        $this->_interval = $interval;
+
+        $this->writePid();
+        $this->registerSignals();
+
+    }
+
+    protected function writePid()
+    {
+        file_put_contents($this->_pidFile, getmypid());
+    }
+
+    function updateTitle($status)
+    {
+        cli_set_process_title("resque-regulars: " . $status);
+    }
+
+    public function shutdown()
+    {
+        $this->updateTitle('Shutdown');
+        $this->log("Shutting down");
+        @unlink($this->_pidFile);
+
+        $this->_shutdown = true;
+    }
+
+    public function pause()
+    {
+        $this->updateTitle('Paused since ' . date('Y-m-d H:i:s'));
+        $this->log('Paused');
+        $this->_paused = true;
+    }
+
+    public function resume()
+    {
+        $this->updateTitle('Resuming');
+        $this->log('Resumed');
+        $this->_paused = false;
+    }
+
+    public function registerSignals()
+    {
+        pcntl_signal(SIGTERM, array($this, 'shutdown'));
+        pcntl_signal(SIGINT, array($this, 'shutdown'));
+        pcntl_signal(SIGQUIT, array($this, 'shutdown'));
+        pcntl_signal(SIGUSR2, array($this, 'pause'));
+        pcntl_signal(SIGCONT, array($this, 'resume'));
+    }
+
+
+    public function run()
+    {
+        exec('yii queue/regulars-clean');
+
+        while (TRUE) {
+            if ($this->_shutdown) {
+                break;
+            }
+
+            if (!$this->_paused) {
+                $pid = pcntl_fork();
+                if (!$pid) { // Child process
+                    pcntl_exec('yii', ['queue/regulars-check']);
+                    exit();
+                } else { // Master thread
+                    $this->updateTitle("waiting for $pid");
+                    pcntl_wait($status);
+                    $exitStatus = pcntl_wexitstatus($status);
+                }
+            }
+
+            sleep($this->_interval);
+        }
+
+    }
+
+    public function log($message)
+    {
+        print_r(date("Y-m-d H:i:s") . " " . $message . PHP_EOL);
+    }
+}
+
+$daemon = new RegularDaemon($PIDFILE, $INTERVAL);
+$daemon->run();

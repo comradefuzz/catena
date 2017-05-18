@@ -1,0 +1,22 @@
+{
+    "name": "comradefuzz/catena",
+    "description": "Redis based queued background jobs system",
+    "type": "yii2-extension",
+    "keywords": ["yii2"," extension","queue"," background", "redis"],
+    "license": "GPL-3.0+",
+    "authors": [
+        {
+            "name": "Fuzz",
+            "email": "comrade.fuzzz@gmail.com"
+        }
+    ],
+    "require": {
+        "yiisoft/yii2": "*",
+        "yiisoft/yii2-redis": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "comradefuzz\\catena\\": ""
+        }
+    }
+}
