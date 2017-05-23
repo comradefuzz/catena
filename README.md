@@ -10,13 +10,13 @@ The preferred way to install this extension is through [composer](http://getcomp
 Either run
 
 ```
-php composer.phar require --prefer-dist ladno/catena "*"
+php composer.phar require --prefer-dist comradefuzz/catena "*"
 ```
 
 or add
 
 ```
-"ladno/catena": "*"
+"comradefuzz/catena": "*"
 ```
 
 to the require section of your `composer.json` file.
@@ -32,11 +32,11 @@ Configure your application like following:
 ```
  'bootstrap' => ['catena'],
  'components' => [
-    'queue' => 'ladno\catena\components\Queue',
+    'queue' => 'comradefuzz\catena\components\Queue',
  ],
  'modules' => [
         'catena' => [
-            'class' => 'ladno\catena\Module',
+            'class' => 'comradefuzz\catena\Module',
             'autoRespawn' => false, // If set worker groups will be kept in actual state by respawning dead workers
                                     // (defaults `false`)
             'enableRegulars' => false,  // If this is set and `regularJobs` is not empty, jobs will be automatically set
@@ -88,7 +88,7 @@ Configure your application like following:
  <?php
  namespace app\jobs;
 
- use ladno\catena\models\BaseJob;
+ use comradefuzz\catena\models\BaseJob;
  
  class MyJob extends BaseJob
  {
